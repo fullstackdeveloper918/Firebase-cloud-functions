@@ -426,6 +426,7 @@ exports.sendFBVariationsRequest = functions.https.onCall(async (data, context) =
   let emailClosingMessage = data.closingMessage ? data.closingMessage : '';
   let emailEmail = data.adminEmail ? data.adminEmail : '';
   let emailCC = data.cc ? data.cc : '';
+  let emailBCC = data.bcc ? data.bcc : '';
   let emailHeader = data.emailHeader ? data.emailHeader : '';
   let textSignature = data.textSignature ? data.textSignature : '';
   let emailSignature = data.emailSignature ? data.emailSignature : '';
@@ -443,6 +444,7 @@ exports.sendFBVariationsRequest = functions.https.onCall(async (data, context) =
               },
               To: emailEmail,
               Cc: emailCC,
+              Bcc : emailBCC,
               Subject: subjectTitle + ': ' + projectName + ' - ' + variationName,
               "TemplateLanguage": true,
               "Variables": {
@@ -524,6 +526,7 @@ exports.sendFBSelectionsRequest = functions.https.onCall(async (data, context) =
   let emailClosingMessage = data.closingMessage ? data.closingMessage : '';
   let emailEmail = data.adminEmail ? data.adminEmail : '';
   let emailCC = data.cc ? data.cc : '';
+  let emailBCC = data.bcc ? data.bcc : '';
   let emailHeader = data.emailHeader ? data.emailHeader : '';
   let textSignature = data.textSignature ? data.textSignature : '';
   let emailSignature = data.emailSignature ? data.emailSignature : '';
@@ -541,6 +544,7 @@ exports.sendFBSelectionsRequest = functions.https.onCall(async (data, context) =
               },
               To: emailEmail,
               Cc: emailCC,
+              Bcc : emailBCC,
               Subject: subjectTitle + ': ' + projectName + ' - ' + selectionName,
               "TemplateLanguage": true,
               "Variables": {
@@ -575,6 +579,7 @@ exports.sendFBRFIsRequest = functions.https.onCall(async (data, context) => {
   let emailClosingMessage = data.closingMessage ? data.closingMessage : '';
   let emailEmail = data.adminEmail ? data.adminEmail : '';
   let emailCC = data.cc ? data.cc : '';
+  let emailBCC = data.bcc ? data.bcc : '';
   let emailHeader = data.emailHeader ? data.emailHeader : '';
   let textSignature = data.textSignature ? data.textSignature : '';
   let emailSignature = data.emailSignature ? data.emailSignature : '';
@@ -592,6 +597,7 @@ exports.sendFBRFIsRequest = functions.https.onCall(async (data, context) => {
               },
               To: emailEmail,
               Cc: emailCC,
+              Bcc: emailBCC,
               Subject: subjectTitle + ': ' + projectName + ' - ' + rfiName,
               "TemplateLanguage": true,
               "Variables": {
