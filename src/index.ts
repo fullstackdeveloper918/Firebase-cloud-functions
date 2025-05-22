@@ -181,15 +181,31 @@ exports.sendFBClientProjectRequest = functions.https.onCall(async (data, context
   console.log(data);
 
   let emailName = data.clientName;
-  let emailEmail = data.clientEmail;
+  let emailEmail = data.clientEmails;
   let emailOpening = data.openingMessage;
   let emailRates = data.rates;
-  let emailTerms = data.termsConditions;
+  let emailTerms = `<ul>${
+                    data.termsConditions
+                      .split('\n')
+                      .filter((line: string) => line.trim())
+                      .map((line: string) => `<li>${line.trim()}</li>`)
+                      .join('')
+                  }</ul>`;
   let emailclosing = data.closingMessage;
   let emailHeader = data.emailHeaderNewUser2;
   let emailLink = data.varLink;
   let textSignature = data.textSignature ? data.textSignature : '';
   let emailSignature = data.emailSignature ? data.emailSignature : '';
+
+  const recipientEmails: string[] = emailEmail
+  .split(',')
+  .map((e: string) => e.trim())
+  .filter((e: any) => e);
+
+  const toRecipients = recipientEmails.map(email => ({
+  Email: email,
+  Name: emailName
+  }));
 
   const emailData: SendEmailV3_1.Body = {
     Messages: [
@@ -198,12 +214,7 @@ exports.sendFBClientProjectRequest = functions.https.onCall(async (data, context
           Email: 'action@tradiesdiary.com',
           Name: "Tradies Diary"
         },
-        To: [
-          {
-            Email: emailEmail,
-            Name: emailName
-          },
-        ],
+        To: toRecipients,
         Subject: 'Project Client Request',
         "TemplateLanguage": true,
         "Variables": {
