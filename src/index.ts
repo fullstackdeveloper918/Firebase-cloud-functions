@@ -52,8 +52,7 @@ exports.createUser = functions.firestore
           password: snap.get("password"),
         });
 
-        const ref1 = await
-        admin.firestore().collection("users").doc(newUser.uid);
+        const ref1 = await admin.firestore().collection("users").doc(newUser.uid);
 
         await batch.set(ref1, {
           id: newUser.uid,
@@ -68,6 +67,8 @@ exports.createUser = functions.firestore
           userFinish: snap.get("userFinish"),
           userMobile: snap.get("userMobile"),
           userAccounts: snap.get("userAccounts"),
+          openingMessage: snap.get("openingMessage") || '',
+          closingMessage: snap.get("closingMessage") || '',
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
@@ -81,6 +82,8 @@ exports.createUser = functions.firestore
             let accountFirebase = snap.get("accountFirebase");
             let textSignature = snap.get("textSignature") ? snap.get("textSignature") : '';
             let emailSignature =  snap.get("emailSignature") ?  snap.get("emailSignature") : '';
+            let openingMessage = snap.get("openingMessage") || '';
+            let closingMessage = snap.get("closingMessage") || '';
 
             const data: SendEmailV3_1.Body = {
               Messages: [
@@ -104,8 +107,11 @@ exports.createUser = functions.firestore
                     "var_header": emailHeaderNewUser,
                     "var_textsignature": textSignature,
                     "var_signature": emailSignature,
+                    "var_opening_message": openingMessage,
+                    "var_closing_message": closingMessage
                   },
-                  "TemplateID": (snap.get("userRole") == 'project_owner') ? 5893544 : 4774200
+                  // "TemplateID": (snap.get("userRole") == 'project_owner') ? 5893544 : 4774200
+                  "TemplateID": 4774200
                 },
               ],
             };
