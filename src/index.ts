@@ -2,6 +2,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { Client, SendEmailV3_1, LibraryResponse } from 'node-mailjet';
+import crypto from 'crypto';
 
 admin.initializeApp();
 // // Start writing functions
@@ -17,6 +18,19 @@ const mailjet = new Client({
   apiKey:  '2a650d8ef563ed5dddcf19fd51f62b43',
   apiSecret: 'a2c5a299186a48aae173d0e6fa33c021'
 });
+
+const ENCRYPTION_KEY = Buffer.from("TmM0bG9QZ3J2dXhFTk1XcWJqZ1hSOUlScGZqS2JXb3g=", "base64");
+const IV_LENGTH = 16;
+
+// FUNCTION FOR ENCRYPTION
+function encryptPassword(password:any) {
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+  let encrypted = cipher.update(password, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return iv.toString('hex') + ':' + encrypted; 
+}
+
 
 exports.deleteUser = functions.firestore
     .document("users/{userId}")
@@ -69,6 +83,7 @@ exports.createUser = functions.firestore
           userAccounts: snap.get("userAccounts"),
           openingMessage: snap.get("openingMessage") || '',
           closingMessage: snap.get("closingMessage") || '',
+          encryptedPassword  : encryptPassword(snap.get("password")) || '',
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
@@ -131,6 +146,68 @@ exports.createUser = functions.firestore
         console.error(error);
         return error;
       }
+});
+
+exports.resendUserInvite = functions.https.onCall(async (data, context) => {
+  const userId = data.id;
+
+  try {
+    const userDoc = await admin.firestore().collection("users").doc(userId).get();
+
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "User not found.");
+    }
+
+    const snap = userDoc;
+
+    // Get data from the document
+    const emailEmail = snap.get("userEmail");
+    const emailName = snap.get("userFirstName") + " " + snap.get("userLastName");
+    const textSignature = data.textSignature;
+    const emailSignature = data.emailSignature
+    const emailHeaderNewUser = data.emailHeaderNewUser;
+    const accountFirebase = data.accountFirebase;
+
+    const dataToSend = {
+      Messages: [
+        {
+          From: {
+            Email: 'action@tradiesdiary.com',
+            Name: "Tradies Diary"
+          },
+          To: [
+            {
+              Email: emailEmail,
+              Name: emailName
+            },
+          ],
+          Subject: 'Tradies Diary - Resend User Invitation',
+          TemplateLanguage: true,
+          Variables: {
+            var_link: `https://${accountFirebase}.tradiesdiary.com/#/pages/login`,
+            var_header: emailHeaderNewUser,
+            var_textsignature: textSignature,
+            var_signature: emailSignature
+          },
+          TemplateID: 7031492
+        },
+      ],
+    };
+
+    const result: LibraryResponse<SendEmailV3_1.Response> = await mailjet
+      .post('send', { version: 'v3.1' })
+      .request(dataToSend);
+
+    const { Status } = result.body.Messages[0];
+
+    console.log("Resend Invite Email Status:", Status);
+
+    return { success: true, status: Status };
+
+  } catch (error) {
+    console.error("Error resending invite:", error);
+    throw new functions.https.HttpsError("internal", "Failed to resend invite.");
+  }
 });
 
 exports.updateUser = functions.firestore
