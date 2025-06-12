@@ -85,6 +85,7 @@ exports.createUser = functions.firestore
           closingMessage: snap.get("closingMessage") || '',
           encryptedPassword  : encryptPassword(snap.get("password")) || '',
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          emailStatus: 'not_sent',
         });
 
         await admin.auth().setCustomUserClaims(newUser.uid,
@@ -131,14 +132,21 @@ exports.createUser = functions.firestore
               ],
             };
           
-            const result: LibraryResponse<SendEmailV3_1.Response> = await mailjet
-                    .post('send', { version: 'v3.1' })
-                    .request(data);
-          
-            const { Status } = result.body.Messages[0];
+         try {
+             const result: LibraryResponse<SendEmailV3_1.Response> = await mailjet
+                     .post('send', { version: 'v3.1' })
+                     .request(data);
+           
+              const status = result.body.Messages[0].Status;
 
-            console.log(Status);
+              if (status  === "success") {
+              batch.update(ref1, { emailStatus: "sent" });
+            }
+         } catch (error) {
+              console.error("Email sending failed:", error);
+         }
 
+                    
         const ref3 = await admin.firestore().collection("users").doc(userId);
         await batch.delete(ref3);
         return batch.commit();
@@ -181,7 +189,7 @@ exports.resendUserInvite = functions.https.onCall(async (data, context) => {
               Name: emailName
             },
           ],
-          Subject: 'Tradies Diary - Resend User Invitation',
+          Subject: 'Tradies Diary - User Invitation',
           TemplateLanguage: true,
           Variables: {
             var_link: `https://${accountFirebase}.tradiesdiary.com/#/pages/login`,
