@@ -3,6 +3,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { Client, SendEmailV3_1, LibraryResponse } from 'node-mailjet';
 import crypto from 'crypto';
+import axios from 'axios';
 
 admin.initializeApp();
 // // Start writing functions
@@ -414,7 +415,6 @@ exports.sendFBAdminProjectRequest = functions.https.onCall(async (data, context)
 
 //Creating a Firebase Cloud Function
 exports.sendFBClientWeeklyReport = functions.https.onCall(async (data, context) => {
-  console.log(data);
 
   let emailBody = data.body ? data.body : ''; 
   let emailEmail = data.to ? data.to : '';
@@ -426,6 +426,31 @@ exports.sendFBClientWeeklyReport = functions.https.onCall(async (data, context) 
   let emailLink = data.pdfLink ? data.pdfLink : '';
   let projectName = data.projectName ? data.projectName : '';
   let formattedDate = data.formattedDate ? data.formattedDate : '';
+  let attachments = data.attachments || [];
+
+  const attachmentObjects = await Promise.all(
+    attachments.map(async (url:any) => {
+      try {
+        const response = await axios.get(url, {
+          responseType: 'arraybuffer'
+        });
+
+        const contentType = response.headers['content-type'] || 'application/octet-stream';
+        const fileName = url.split('/').pop()?.split('?')[0] || 'attachment';
+
+        return {
+          ContentType: contentType,
+          Filename: fileName,
+          Base64Content: Buffer.from(response.data).toString('base64')
+        };
+      } catch (error:any) {
+        console.error('Error downloading attachment:', url, error.message);
+        return null;
+      }
+    })
+  );
+
+  const validAttachments = attachmentObjects.filter(att => att !== null);
 
   const emailData: SendEmailV3_1.Body = {
     Messages: [
@@ -450,7 +475,8 @@ exports.sendFBClientWeeklyReport = functions.https.onCall(async (data, context) 
         "TemplateErrorReporting": {
           "Email": 'cj@spindesign.com.au',
           "Name": 'CJ Diary',
-        }
+        },
+        Attachments : validAttachments
       },
     ],
   };
