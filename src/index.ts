@@ -848,3 +848,63 @@ exports.sendFBRFIsSubmit = functions.https.onCall(async (data, context) => {
   // console.log(Status);
   return Status;
 });
+
+// Send notification email when a comment is added
+exports.sendFBCommentNotification = functions.https.onCall(async (data, context) => {
+  const to = data.to || [];
+  const subject =
+    (data.subjectTitle + ': ' + data.projectName + ' - ' + data.rfiName) ||
+    'New Comment Added';
+  const commentText = data.commentText || '';
+  const commenter = data.author || '';
+  const header = data.emailHeader || '';
+  const link = data.varLink || '';
+  const pdfLink = data.pdfLink || '';
+
+  const toArray = Array.isArray(to) ? to : [to];
+
+  const emailData = {
+    Messages: [
+      {
+        From: {
+          Email: 'action@tradiesdiary.com',
+          Name: 'Tradies Diary',
+        },
+        To: toArray.map((email) => ({
+          Email: email,
+          Name: email,
+        })),
+        Subject: subject,
+        TemplateLanguage: true,
+        Variables: {
+          var_comment: commentText,
+          var_commenter: commenter,
+          var_header: header,
+          var_link: link,
+          var_pdfLink: pdfLink,
+        },
+        TemplateID: 7173387,
+        TemplateErrorReporting: {
+          Email: 'cj@spindesign.com.au',
+          Name: 'CJ Diary',
+        },
+      },
+    ],
+  };
+
+  try {
+    const emailResult: any = await mailjet
+      .post('send', { version: 'v3.1' })
+      .request(emailData);
+    const { Status } = emailResult.body.Messages[0];
+    console.log('Comment Notification Email Status:', Status);
+    return { success: true, status: Status };
+  } catch (error) {
+    console.error('Error sending comment notification:', error);
+    throw new functions.https.HttpsError(
+      'internal',
+      'Failed to send comment notification.'
+    );
+  }
+});
+
